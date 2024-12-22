@@ -1,0 +1,9 @@
+fastapi[all]
+uvicorn
+pandas
+numpy
+tensorflow
+scikit-learn
+sqlalchemy
+psycopg2
+python-decouple
