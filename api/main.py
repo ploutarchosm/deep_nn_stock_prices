@@ -1,17 +1,17 @@
 # api/main.py
-from fastapi import FastAPI, UploadFile, Form
-from pydantic import BaseModel
-from api.routes import router as api_router
+from fastapi import FastAPI
 import uvicorn
-from models.database import init_db
+from dotenv import load_dotenv
+from models.database import db  # Ensures MongoDB connection is ready
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(title="Trading Signal API")
 
-# Initialize database
-init_db()
-
-# Include routes
-app.include_router(api_router)
+@app.get("/")
+def root():
+    return {"message": "Trading Signal API is running"}
 
 # Start the server
 if __name__ == "__main__":

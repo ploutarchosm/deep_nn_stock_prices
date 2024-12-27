@@ -1,41 +1,50 @@
 # models/database.py
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
+from pymongo import MongoClient
 from datetime import datetime
+from bson.objectid import ObjectId
+import os
+from dotenv import load_dotenv
 
-# Database URL
-DATABASE_URL = "sqlite:///./trading_signals.db"  # Replace with PostgreSQL in production
+# Load environment variables
+load_dotenv()
 
-# Initialize DB
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+# MongoDB Configuration
+MONGO_URI = os.getenv("MONGO_URI")  # e.g., "mongodb+srv://username:password@cluster.mongodb.net/dbname"
+DB_NAME = os.getenv("DB_NAME", "trading_signals")
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
 
+# Collections
+models_collection = db["models"]
+signals_collection = db["signals"]
 
-# Model for storing trained LSTM models
-class Model(Base):
-    __tablename__ = "models"
-    id = Column(Integer, primary_key=True, index=True)
-    asset_pair = Column(String, index=True)
-    timeframe = Column(String)
-    model_path = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-# Model for storing predictions and signals
-class Signal(Base):
-    __tablename__ = "signals"
-    id = Column(Integer, primary_key=True, index=True)
-    asset_pair = Column(String, index=True)
-    timeframe = Column(String)
-    prediction = Column(Float)
-    stop_loss = Column(Float)
-    take_profit = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow)
+# Model Schema
+def insert_model(asset_pair, timeframe, model_path):
+    model = {
+        "asset_pair": asset_pair,
+        "timeframe": timeframe,
+        "model_path": model_path,
+        "created_at": datetime.utcnow()
+    }
+    result = models_collection.insert_one(model)
+    return str(result.inserted_id)
 
 
-# Create Tables
-def init_db():
-    Base.metadata.create_all(bind=engine)
+# Signal Schema
+def insert_signal(asset_pair, timeframe, prediction, stop_loss, take_profit):
+    signal = {
+        "asset_pair": asset_pair,
+        "timeframe": timeframe,
+        "prediction": prediction,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "created_at": datetime.utcnow()
+    }
+    result = signals_collection.insert_one(signal)
+    return str(result.inserted_id)
+
+
+def get_signals(asset_pair, timeframe):
+    signals = signals_collection.find({"asset_pair": asset_pair, "timeframe": timeframe})
+    return list(signals)
+
